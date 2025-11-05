@@ -1,0 +1,35 @@
+# Large files (> 1 GB) - excluded from git
+hg38.fa
+hg38 text.csv.txt
+sample_sequences.fa
+converted/hg38_converted.csv
+chr1.fa
+chr2.fa
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.log
+*.bak
+
