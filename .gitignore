@@ -33,3 +33,27 @@ Thumbs.db
 *.log
 *.bak
 
+# Generated artifacts (keep locally, don't commit)
+data/processed/
+data/raw/
+results/
+models/
+
+# Model/data artifacts
+*.pt
+*.pth
+*.npy
+*.npz
+
+# Large binary docs/media
+*.pdf
+*.docx
+*.pptx
+*.png
+*.jpg
+*.jpeg
+*.webp
+
+# Research/materials folders
+Honors- Deep learning/
+

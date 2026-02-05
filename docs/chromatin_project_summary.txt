@@ -1,0 +1,55 @@
+Project Title: Multi-Modal Transformer for Predicting Cell-Type Specific Chromatin Accessibility
+
+1. Objective
+   - Predict chromatin accessibility per genomic window for unseen cell types by integrating DNA sequence, histone marks, and transcription factor (TF) binding profiles within a unified deep learning framework.
+
+2. Data Sources and Processing
+   - Data curated from the ENCODE Project (hg38 reference genome), combining ATAC/DNase-seq peaks, histone modification bigWig tracks (e.g., H3K27ac, H3K4me3, H3K27me3), and TF binding bigWigs (CTCF, GATA1, etc.).
+   - Positive windows generated from peak regions; negatives sampled from matched non-peak regions with GC balancing.
+   - DNA sequences extracted and one-hot encoded (length 1500 bp → 1500×4 tensor).
+   - Functional signals summarized into per-window feature vectors via binned statistics (mean, variance, max) for each modality channel.
+   - Datasets serialized into PyTorch-ready tensors/TFRecords and split 70/15/15 across train/validation/test with cell-type holdout.
+
+3. Model Architecture
+   - Sequence Encoder: Transformer stack (L=4, d_model=128, heads=4) operating on sequence patches/k-mers.
+   - Histone Encoder: 1D CNN branch with three convolutional blocks, 64 filters each, producing modality embeddings.
+   - TF Encoder: Feed-forward MLP (input=5 signals, hidden=128) for TF binding profiles.
+   - Cross-Modal Fusion: Attention-based fusion layer integrating sequence, histone, and TF embeddings along with optional cell metadata.
+   - Multi-Modal Transformer: Six-layer encoder (d_model=128, heads=8, dropout=0.1) refining fused representations.
+   - Output Head: Global mean pooling → MLP regression head (128→64→1) yielding continuous accessibility score per region.
+
+4. Training Configuration
+   - Objective: Masked-accessibility regression with auxiliary binary classification when applicable.
+   - Loss: Combination of Mean Squared Error and Binary Cross-Entropy (for masked tokens/labels).
+   - Optimizer: Adam with learning rate 1e-3, cosine scheduling; batch size tuned to GPU memory (32 for current runs).
+   - Regularization: Dropout 0.1 in transformer blocks, gradient clipping at 1.0.
+   - Training Duration: 16 epochs on synthetic pilot dataset; best validation performance observed at epoch 4.
+
+5. Evaluation and Results
+   - Test set (69 windows, unseen cell types) metrics from `results/evaluation/evaluation_metrics.json`:
+     • MSE: 0.0328
+     • ROC-AUC: 0.5050
+     • PR-AUC: 0.5325
+     • Pearson correlation: 0.1785 (p=0.14)
+     • Spearman correlation: 0.0759 (p=0.54)
+     • Accuracy: 0.5217, Precision: 0.5161, Recall: 0.9143, F1: 0.6598
+   - Training history indicates modest reduction in validation loss (best 0.867) with limited positive correlation gains (<0.05), pointing to underfitting or data misalignment.
+   - Diagnostic plots (`results/evaluation/*.png`) reveal near-constant predictions (mean ~0.51, std ~0.02) and poor separability between classes despite high recall, suggesting bias toward positive class and collapsed variance.
+
+6. Key Findings
+   - Multi-modal fusion alone does not guarantee performance; synthetic dataset and limited training epochs led to unstable optimization.
+   - ROC/PR metrics close to random baseline expose need for stronger regularization, curriculum training, or more realistic labels.
+   - Attention maps and captum analyses (see `scripts/train/create_enhanced_visualizations.py`) highlight potential motif alignments but require confirmation after model stabilization.
+
+7. Implementation Notes
+   - Core model defined in `scripts/train/model_multimodal.py`; training loop in `scripts/train/train_epibert.py` with configurable hyperparameters via YAML/argparse.
+   - Data preprocessing pipeline resides in `scripts/preprocess/`, with `preprocess.py` orchestrating sequence extraction and feature aggregation.
+   - Evaluation scripts (`scripts/train/evaluate_epibert.py`, `scripts/analyze_model_collapse.py`) generate metrics, confusion matrices, and collapse diagnostics.
+
+8. Risks and Next Steps
+   - Collect real accessibility labels to replace synthetic placeholders and expand sample size.
+   - Experiment with larger transformer depth, learning rate warmup, and contrastive pretraining across modalities.
+   - Incorporate cell-type embeddings and curriculum masking to improve generalization.
+   - Add calibration metrics and alternative losses (Huber, focal BCE) to handle noisy labels.
+   - Revisit data normalization (see `data/processed/funcvecs/*.json`) to ensure modality scales are aligned.
+
