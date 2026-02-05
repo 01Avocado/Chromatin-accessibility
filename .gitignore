@@ -6,6 +6,7 @@ converted/hg38_converted.csv
 chr1.fa
 chr2.fa
 
+
 # Python cache
 __pycache__/
 *.py[cod]
